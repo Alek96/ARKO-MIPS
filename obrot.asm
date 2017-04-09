@@ -18,6 +18,10 @@ fOpenErrorInfo: .asciiz "Error with opening file \n"
 fReadErrorInfo: .asciiz "Error with reading file \n"
 closeFInfo: 	.asciiz "File is closed \n"
 numberOfChars:	.asciiz "The size of the BMP file in bytes: \n"
+width:		.asciiz "width in pixels: \n"
+height:		.asciiz "height in pixels: \n"
+widthBytes:	.asciiz "width in bytes: \n"
+heightBytes:	.asciiz "height in bytes: \n"
 
 	.text
 	.globl main
@@ -30,6 +34,8 @@ numberOfChars:	.asciiz "The size of the BMP file in bytes: \n"
 #s3 - Address of allocated memory
 #s4 - The bitmap width in pixels
 #s5 - The bitmap height in pixels
+#s6 - The bitmap width in bytes
+#s7 - The bitmap height in bytes
 
 
 
@@ -120,11 +126,29 @@ main:
 	#print aboute close
 	jal	closeFile
 	
-#save main information from allocated memory
+#save size from allocated memory
 	#the bitmap width in pixels
-	lw	$s4, 4($s3)
+	lw	$s4, 8($s3)
+	jal	printWidth
 	#the bitmap height in pixels
-	lw	$s5, 8($s3)
+	lw	$s5, 12($s3)
+	jal	printHeight
+
+#Calculate size in bytes
+	#the bitmap width in bytes
+	li	$t1, 0
+	addi	$t1, $s4, 31
+	srl	$t1, $t1, 5
+	sll	$t1, $t1, 2
+	move	$s6, $t1
+	jal	printWidthBytes
+	#the bitmap height in bytes
+	li	$t1, 0
+	addiu	$t1, $s5, 31
+	srl	$t1, $t1, 5
+	sll	$t1, $t1, 2
+	move	$s7, $t1
+	jal	printHeightBytes
 	
 	
 	j	end	
@@ -203,6 +227,38 @@ closeFile:
 	la 	$a0, closeFInfo
 	syscall
 	jr	$ra
+printWidth:
+	li 	$v0, 4
+	la 	$a0, width
+	syscall
+	li	$v0, 1
+	move	$a0, $s4
+	syscall
+	j 	printEnter
+printHeight:
+	li 	$v0, 4
+	la 	$a0, height
+	syscall
+	li	$v0, 1
+	move	$a0, $s5
+	syscall
+	j 	printEnter
+printWidthBytes:
+	li 	$v0, 4
+	la 	$a0, widthBytes
+	syscall
+	li	$v0, 1
+	move	$a0, $s6
+	syscall
+	j 	printEnter
+printHeightBytes:
+	li 	$v0, 4
+	la 	$a0, heightBytes
+	syscall
+	li	$v0, 1
+	move	$a0, $s7
+	syscall
+	j 	printEnter
 	
 
 printEnter:
