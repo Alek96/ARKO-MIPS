@@ -1,33 +1,10 @@
-# Object files
-*.o
-*.ko
-*.obj
-*.elf
+# not needed files
+result.bmp
+ARKO.lnk
+Mars4_5.jar
 
-# Precompiled Headers
-*.gch
-*.pch
+# example
+rotaten90.asm
+rotate-2.asm
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
 
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
-
-# Debug files
-*.dSYM/
-*.su
