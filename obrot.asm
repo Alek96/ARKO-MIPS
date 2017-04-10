@@ -175,7 +175,19 @@ main:
 	
 	
 #rotate!!!
-	
+	#(i,j) - position in pixels data 1
+	#(k,m) - position in pixels data 2
+	#(i,j) = i*bytes_per_pixel + j*width_B
+	#(k,m) = k*bytes_per_pixel + m*height_B
+	# $t1  - width
+	# $t2  - height
+	#
+	#for(j=0, k=height-1;	j<height;	++j, --k)
+	#	for(i=0, m=0;	j<height;	++i, ++m)
+	#		(k,m) = (i,j)	- rewrite bytes_per_pixel times
+
+#copy pixels data 2 to pixels data 1
+	#...
 
 #open file
 	li	$v0, 13
