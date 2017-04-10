@@ -1,6 +1,4 @@
-#Memory segments (text, data, stack, kernel text, kernel data) are limited to 4MB each starting at their respective base addresses
-	.data
-	
+	.data	
 text1: 	.asciiz "Enter the file path \n"
 text2:  .asciiz "Enter the number of turns \n"
 #fname:	.space 100
@@ -10,7 +8,6 @@ rfname: .asciiz "result.bmp"
 buf:	.space	2097152
 		#10240		# 10kB
 		#2097152	# 2MB
-buf2:	.space	200
 
 enter:		.asciiz "\n"
 fOpenInfo: 	.asciiz "File is opened \n"
