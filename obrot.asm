@@ -26,13 +26,9 @@ heightBytes:	.asciiz "height in bytes: \n"
 #t0 - File descriptor
 #t1 - 
 #s0 - The number of turns
-#s1 - The size of the BMP file in bytes
-#s2 - The offset of image data (pixel array)
-#s3 - Address of allocated memory
-#s4 - The bitmap width in pixels
-#s5 - The bitmap height in pixels
-#s6 - The bitmap width in bytes
-#s7 - The bitmap height in bytes
+#s1 - Address of allocated memory
+#s2 - The bitmap width in bytes
+#s3 - The bitmap height in bytes
 
 
 
@@ -87,33 +83,25 @@ main:
 	li	$a2, 4		# pass maximum number of characters to read
 	syscall
 	beq	$v0, 0, errorfr	# reading file did not succeed
-	lw	$s1, buf
+	lw	$t9, buf
 	#print bits number - ok
 	jal	bitesNumber
-	#read 4 reserved bytes = 0
-	li	$v0, 14
-	move	$a0, $t0	# pass file descriptor
-	la	$a1, buf	# pass address of input buffer
-	li	$a2, 4		# pass maximum number of characters to read
-	#read the offset of image data (pixel array)
-	li	$v0, 14
-	move	$a0, $t0	# pass file descriptor
-	la	$a1, buf	# pass address of input buffer
-	li	$a2, 4		# pass maximum number of characters to read
-	syscall
-	lw 	$s2, buf
 	
 	#allocate heap memory
 	li	$v0, 9
-	move	$a0, $s1	#number of bits
+	move	$a0, $t9	#number of bits
 	syscall
-	move	$s3, $v0	#save the address of allocated memory
+	move	$s1, $v0	#save the address of allocated memory
+	
+	#save the size of the BMP file
+	sw	$t9, ($s1)
 	
 	#read rest of file to allocated memory (14)
 	li	$v0, 14
 	move	$a0, $t0	# pass file descriptor
-	move	$a1, $s3	# allocated memory
-	move	$a2, $s1	# pass maximum number of characters to read
+	#move	$a1, $s1	# allocated memory
+	addiu	$a1, $s1, 4	# We need to shift allocated memory by 4 bytes
+	lw	$a2, ($s1)	# pass maximum number of characters to read
 	syscall
 	
 #close file
@@ -123,52 +111,31 @@ main:
 	#print aboute close
 	jal	closeFile
 	
-#save size from allocated memory
+	
+#size from allocated memory
 	#the bitmap width in pixels
-	lw	$s4, 8($s3)
 	jal	printWidth
 	#the bitmap height in pixels
-	lw	$s5, 12($s3)
 	jal	printHeight
 
-#Calculate size in bytes
+#Calculate size in bytes (with padding)
 	#the bitmap width in bytes
-	li	$t1, 0
-	addi	$t1, $s4, 31
+	lw	$t1, 16($s1)
+	addi	$t1, $t1, 31
 	srl	$t1, $t1, 5
 	sll	$t1, $t1, 2
-	move	$s6, $t1
+	move	$s2, $t1
 	jal	printWidthBytes
 	#the bitmap height in bytes
-	li	$t1, 0
-	addiu	$t1, $s5, 31
+	lw	$t1, 20($s1)
+	addi	$t1, $t1, 31
 	srl	$t1, $t1, 5
 	sll	$t1, $t1, 2
-	move	$s7, $t1
+	move	$s3, $t1
 	jal	printHeightBytes
 	
 	
-	j	end	
-#write:
-openf2:	
-	li	$v0, 13
-	la	$a0, rfname
-	li	$a1, 1		# open (flags are 0: read, 1: write)
-	li	$a2, 0		# mode is ignored
-	syscall
-	move	$t0, $v0	# file descriptor
-	blt	$t0, 0, errorfo	# opening file did not succeed
-	li 	$v0, 4
-	la 	$a0, fOpenInfo
-	syscall			# print string
-write:# write bitmap from memory
-	li	$v0, 15
-	move	$a0, $t0	# pass fd
-	la	$a1, buf	# pass address of output buffer
-	move	$a2, $s1	# pass number of characters to write
-	syscall
-	# check ...
-	j	closef
+	j	end
 	
 errorfo:
 	li 	$v0, 4
@@ -216,7 +183,7 @@ bitesNumber:
 	la	$a0, numberOfChars
 	syscall
 	li	$v0, 1
-	move	$a0, $s1
+	move	$a0, $t9
 	syscall
 	j	printEnter
 closeFile:
@@ -229,7 +196,7 @@ printWidth:
 	la 	$a0, width
 	syscall
 	li	$v0, 1
-	move	$a0, $s4
+	lw	$a0, 16($s1)
 	syscall
 	j 	printEnter
 printHeight:
@@ -237,7 +204,7 @@ printHeight:
 	la 	$a0, height
 	syscall
 	li	$v0, 1
-	move	$a0, $s5
+	lw	$a0, 20($s1)
 	syscall
 	j 	printEnter
 printWidthBytes:
@@ -245,7 +212,7 @@ printWidthBytes:
 	la 	$a0, widthBytes
 	syscall
 	li	$v0, 1
-	move	$a0, $s6
+	move	$a0, $s2
 	syscall
 	j 	printEnter
 printHeightBytes:
@@ -253,7 +220,7 @@ printHeightBytes:
 	la 	$a0, heightBytes
 	syscall
 	li	$v0, 1
-	move	$a0, $s7
+	move	$a0, $s3
 	syscall
 	j 	printEnter
 	
