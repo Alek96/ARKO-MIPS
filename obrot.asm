@@ -15,7 +15,7 @@
 .eqv 	adr_pb2 	$s3
 .eqv 	width_B 	$s4
 .eqv 	height_B	$s5
-.eqv 	size_pixel_area 	$s6
+.eqv 	size_pixel_area $s6
 .eqv 	bytes_per_pixel	$s7
 
 		
@@ -23,7 +23,7 @@
 text1: 	.asciiz "Enter the file path \n"
 text2:  .asciiz "Enter the number of turns \n"
 #fname:	.space 100
-fname: 	.asciiz "image1.bmp"
+fname: 	.asciiz "image2.bmp"
 rfname: .asciiz "result.bmp"
 
 buf:	.space	2097152
@@ -179,24 +179,74 @@ main:
 	#(k,m) - position in pixels data 2
 	#(i,j) = i*bytes_per_pixel + j*width_B
 	#(k,m) = k*bytes_per_pixel + m*height_B
-	# $t1  - width
-	# $t2  - height
 	#
 	#for(j=0, k=height-1;	j<height;	++j, --k)
-	#	for(i=0, m=0;	j<height;	++i, ++m)
+	#	for(i=0, m=0;	j<width;	++i, ++m)
 	#		(k,m) = (i,j)	- rewrite bytes_per_pixel times
+	#
+	#$t1 - i
+	#$t2 - j
+	#$t3 - k
+	#$t4 - m
+	#$t5 - width
+	#$t6 - height
+	#$t7 - (i,j)
+	#$t8 - (k,m)
+	#$t9 - for help
+	lw	$t5, 16(adr_mem)	#width
+	lw	$t6, 20(adr_mem)	#height
+	li	$t2, 0
+	sub	$t3, $t6, 1
+rotateLoop1:
+	li	$t1, 0
+	li	$t4, 0
+rotateLoop2:
+	#copy pixel
+	#$t7 = i*bytes_per_pixel + j*width_B
+	mul	$t7, $t1, bytes_per_pixel
+	mul	$t9, $t2, width_B
+	add	$t7, $t7, $t9
+	add	$t7, $t7, adr_pb1
+	#$t8 = k*bytes_per_pixel + m*height_B
+	mul	$t8, $t3, bytes_per_pixel
+	mul	$t9, $t4, height_B
+	add	$t8, $t8, $t9
+	add	$t8, $t8, adr_pb2
+	#copy bytes
+	lb	$t9, 0($t7)
+	sb	$t9, 0($t8)
+	lb	$t9, 1($t7)
+	sb	$t9, 1($t8)
+	lb	$t9, 2($t7)
+	sb	$t9, 2($t8)
+	
+	add	$t1, $t1, 1
+	add	$t4, $t4, 1
+	blt	$t1, $t5, rotateLoop2
+	#end of rotateLoop2
+	add	$t2, $t2, 1
+	sub	$t3, $t3, 1
+	blt	$t2, $t6, rotateLoop1
+	#end of rotateLoop1
+	
 
 #copy pixels data 2 to pixels data 1
-	move 	$t1, size_pixel_area
-	move	$t2, adr_pb1
-	move	$t3, adr_pb2
+	#move 	$t1, size_pixel_area
+	#move	$t2, adr_pb1
+	#move	$t3, adr_pb2
 copyLoop:
-	subiu	$t1, $t1, 1
-	lb 	$t4, ($t3)
-	sb	$t4, ($t2)
-	addiu	$t2, $t2, 1
-	addiu	$t3, $t3, 1
-	bnez	$t1, copyLoop
+	#subiu	$t1, $t1, 1
+	#lb 	$t4, ($t3)
+	#sb	$t4, ($t2)
+	#addiu	$t2, $t2, 1
+	#addiu	$t3, $t3, 1
+	#bnez	$t1, copyLoop
+
+#swap width and height
+	lw	$t1, 16(adr_mem)
+	lw	$t2, 20(adr_mem)
+	sw	$t1, 20(adr_mem)
+	sw	$t2, 16(adr_mem)
 
 #open file
 	li	$v0, 13
@@ -220,7 +270,14 @@ copyLoop:
 	li	$v0, 15
 	move	$a0, deskryptor	# pass file descriptor
 	move	$a1, adr_mem	# pass address of input buffer
-	lw	$a2, (adr_mem)	# pass maximum number of characters to read
+	lw	$a2, 8(adr_mem)	# pass maximum number of characters to read
+	sub	$a2, $a2, 2	# -2B <-> BM
+	syscall
+	#write rest of file
+	li	$v0, 15
+	move	$a0, deskryptor	# pass file descriptor
+	move	$a1, adr_pb2	# pass address of input buffer
+	move	$a2, size_pixel_area	# pass maximum number of characters to read
 	syscall
 
 #close file
