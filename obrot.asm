@@ -1,18 +1,22 @@
 #t0 - File descriptor
 #t1 - 
 #s0 - The number of turns
-#s1 - Address of allocated memory 1
-#s2 - Address of allocated memory 2
-#s3 - The bitmap width in bytes
-#s4 - The bitmap height in bytes
-#s5 - The bitmap height * width
+#s1 - Address of allocated memory
+#s2 - Address of pixels data 1
+#s3 - Address of pixels data 2
+#s4 - The bitmap width in bytes
+#s5 - The bitmap height in bytes
+#s6 - The bitmap height * width
+#s7 - The number of bytes per pixel
 	
 .eqv 	deskryptor 	$t0
-.eqv 	adr_mem1 	$s1
-.eqv 	adr_mem2 	$s2
-.eqv 	width_B 	$s3
-.eqv 	height_B	$s4
-.eqv 	new_pixel_area 	$s5
+.eqv 	adr_mem 	$s1
+.eqv 	adr_pb1 	$s2
+.eqv 	adr_pb2 	$s3
+.eqv 	width_B 	$s4
+.eqv 	height_B	$s5
+.eqv 	new_pixel_area 	$s6
+.eqv 	bytes_per_pixel	$s7
 
 		
 	.data	
@@ -25,6 +29,7 @@ rfname: .asciiz "result.bmp"
 buf:	.space	2097152
 		#10240		# 10kB
 		#2097152	# 2MB
+BM:	.asciiz  "BM"
 
 enter:		.asciiz "\n"
 fOpenInfo: 	.asciiz "File is opened \n"
@@ -36,6 +41,7 @@ width:		.asciiz "width in pixels: \n"
 height:		.asciiz "height in pixels: \n"
 widthBytes:	.asciiz "width in bytes: \n"
 heightBytes:	.asciiz "height in bytes: \n"
+bytesPixel:	.asciiz "Bytes per pixel: \n"
 
 	.text
 	.globl main
@@ -99,17 +105,17 @@ main:
 	li	$v0, 9
 	move	$a0, $t9	#number of bits
 	syscall
-	move	adr_mem1, $v0	#save the address of allocated memory
+	move	adr_mem, $v0	#save the address of allocated memory
 	
 	#save the size of the BMP file
-	sw	$t9, (adr_mem1)
+	sw	$t9, (adr_mem)
 	
 	#read rest of file to allocated memory (14)
 	li	$v0, 14
 	move	$a0, deskryptor	# pass file descriptor
-	#move	$a1, adr_mem1	# allocated memory
-	addiu	$a1, adr_mem1, 4	# We need to shift allocated memory by 4 bytes
-	lw	$a2, (adr_mem1)	# pass maximum number of characters to read
+	#move	$a1, adr_mem	# allocated memory
+	addiu	$a1, adr_mem, 4	# We need to shift allocated memory by 4 bytes
+	lw	$a2, (adr_mem)	# pass maximum number of characters to read
 	syscall
 	
 #close file
@@ -128,19 +134,35 @@ main:
 
 #Calculate size in bytes (with padding)
 	#the bitmap width in bytes
-	lw	$t1, 16(adr_mem1)
+	lw	$t1, 16(adr_mem)	#image width
+	lh	$t2, 26(adr_mem)	#bits per pixel
+	mul	$t1, $t1, $t2
 	addiu	$t1, $t1, 31
 	srl	$t1, $t1, 5
 	sll	$t1, $t1, 2
 	move	width_B, $t1
 	jal	printWidthBytes
 	#the bitmap height in bytes
-	lw	$t1, 20(adr_mem1)
+	lw	$t1, 20(adr_mem)	#image width
+	lh	$t2, 26(adr_mem)	#bits per pixel
+	mul	$t1, $t1, $t2
 	addiu	$t1, $t1, 31
 	srl	$t1, $t1, 5
 	sll	$t1, $t1, 2
 	move	height_B, $t1
 	jal	printHeightBytes
+	
+#set the number of bytes per pixel
+	lh 	bytes_per_pixel, 26(adr_mem)
+	div	bytes_per_pixel, bytes_per_pixel, 8
+	#print bytes per pixel
+	jal	printBytesPerPixel
+	
+	#load and chang offset of image data
+	lw	$t9, 8(adr_mem)
+	sub 	$t9, $t9, 2
+	#change pointer of first allocated memory to image data		 	#note !!!!!
+	add	adr_pb1, adr_mem, $t9
 	
 #create new allocated memory
 	#width * height
@@ -149,17 +171,10 @@ main:
 	li	$v0, 9
 	move	$a0, new_pixel_area	#number of bits
 	syscall
-	move	adr_mem2, $v0	#save the address of allocated memory
-	
-	#load and chang offset of image data
-	lw	$t9, 8(adr_mem1)
-	sub 	$t9, $t9, 2
-	#change pointer of first allocated memory to image data		 	#note !!!!!
-	add	adr_mem1, adr_mem1, $t9
+	move	adr_pb2, $v0	#save the address of allocated memory
 	
 	
-	
-	
+#rotate!!!
 	
 	
 	
@@ -223,7 +238,7 @@ printWidth:
 	la 	$a0, width
 	syscall
 	li	$v0, 1
-	lw	$a0, 16(adr_mem1)
+	lw	$a0, 16(adr_mem)
 	syscall
 	j 	printEnter
 printHeight:
@@ -231,7 +246,7 @@ printHeight:
 	la 	$a0, height
 	syscall
 	li	$v0, 1
-	lw	$a0, 20(adr_mem1)
+	lw	$a0, 20(adr_mem)
 	syscall
 	j 	printEnter
 printWidthBytes:
@@ -250,6 +265,14 @@ printHeightBytes:
 	move	$a0, height_B
 	syscall
 	j 	printEnter
+printBytesPerPixel:
+	li 	$v0, 4
+	la 	$a0, bytesPixel
+	syscall
+	li	$v0, 1
+	move	$a0, bytes_per_pixel
+	syscall
+	j	printEnter
 	
 
 printEnter:
