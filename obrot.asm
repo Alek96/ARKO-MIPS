@@ -176,6 +176,38 @@ main:
 	
 #rotate!!!
 	
+
+#open file
+	li	$v0, 13
+	la	$a0, rfname	# file path
+	li	$a1, 1		# open (flags are 0: read, 1: write)
+	li	$a2, 0		# mode is ignored
+	syscall
+	blt	$v0, 0, errorfo	# opening file did not succeed	
+	move	deskryptor, $v0	# file descriptor
+	#print "File is opened"
+	jal	openFile
+	
+#write to file
+	#write "BM"
+	li	$v0, 15
+	move	$a0, deskryptor	# pass file descriptor
+	la	$a1, BM		# pass address of input buffer
+	li	$a2, 2		# pass maximum number of characters to read
+	syscall
+	#write rest of file
+	li	$v0, 15
+	move	$a0, deskryptor	# pass file descriptor
+	move	$a1, adr_mem	# pass address of input buffer
+	lw	$a2, (adr_mem)	# pass maximum number of characters to read
+	syscall
+
+#close file
+	li	$v0, 16
+	move	$a0, deskryptor	# file descriptor to close
+	syscall
+	#print aboute close
+	jal	closeFile
 	
 	
 	j	end
