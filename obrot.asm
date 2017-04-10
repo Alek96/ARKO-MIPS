@@ -15,7 +15,7 @@
 .eqv 	adr_pb2 	$s3
 .eqv 	width_B 	$s4
 .eqv 	height_B	$s5
-.eqv 	new_pixel_area 	$s6
+.eqv 	size_pixel_area 	$s6
 .eqv 	bytes_per_pixel	$s7
 
 		
@@ -166,10 +166,10 @@ main:
 	
 #create new allocated memory
 	#width * height
-	mul	new_pixel_area, height_B, width_B
+	mul	size_pixel_area, height_B, width_B
 	#allocate heap memory
 	li	$v0, 9
-	move	$a0, new_pixel_area	#number of bits
+	move	$a0, size_pixel_area	#number of bits
 	syscall
 	move	adr_pb2, $v0	#save the address of allocated memory
 	
@@ -187,7 +187,16 @@ main:
 	#		(k,m) = (i,j)	- rewrite bytes_per_pixel times
 
 #copy pixels data 2 to pixels data 1
-	#...
+	move 	$t1, size_pixel_area
+	move	$t2, adr_pb1
+	move	$t3, adr_pb2
+copyLoop:
+	subiu	$t1, $t1, 1
+	lb 	$t4, ($t3)
+	sb	$t4, ($t2)
+	addiu	$t2, $t2, 1
+	addiu	$t3, $t3, 1
+	bnez	$t1, copyLoop
 
 #open file
 	li	$v0, 13
