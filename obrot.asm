@@ -7,7 +7,12 @@
 #s4 - The bitmap height in bytes
 #s5 - The bitmap height * width
 	
-
+.eqv 	deskryptor 	$t0
+.eqv 	adr_mem1 	$s1
+.eqv 	adr_mem2 	$s2
+.eqv 	width_B 	$s3
+.eqv 	height_B	$s4
+.eqv 	new_pixel_area 	$s5
 
 		
 	.data	
@@ -66,7 +71,7 @@ main:
 	li	$a2, 0		# mode is ignored
 	syscall
 	blt	$v0, 0, errorfo	# opening file did not succeed	
-	move	$t0, $v0	# file descriptor
+	move	deskryptor, $v0	# file descriptor
 	#print "File is opened"
 	jal	openFile
 	
@@ -74,14 +79,14 @@ main:
 	#bitmap file header
 	#read "BM"
 	li	$v0, 14
-	move	$a0, $t0	# pass file descriptor
+	move	$a0, deskryptor	# pass file descriptor
 	la	$a1, buf	# pass address of input buffer
 	li	$a2, 2		# pass maximum number of characters to read
 	syscall
 	beq	$v0, 0, errorfr	# reading file did not succeed
 	#read the size of the BMP file in bytes
 	li	$v0, 14
-	move	$a0, $t0	# pass file descriptor
+	move	$a0, deskryptor	# pass file descriptor
 	la	$a1, buf	# pass address of input buffer
 	li	$a2, 4		# pass maximum number of characters to read
 	syscall
@@ -94,22 +99,22 @@ main:
 	li	$v0, 9
 	move	$a0, $t9	#number of bits
 	syscall
-	move	$s1, $v0	#save the address of allocated memory
+	move	adr_mem1, $v0	#save the address of allocated memory
 	
 	#save the size of the BMP file
-	sw	$t9, ($s1)
+	sw	$t9, (adr_mem1)
 	
 	#read rest of file to allocated memory (14)
 	li	$v0, 14
-	move	$a0, $t0	# pass file descriptor
-	#move	$a1, $s1	# allocated memory
-	addiu	$a1, $s1, 4	# We need to shift allocated memory by 4 bytes
-	lw	$a2, ($s1)	# pass maximum number of characters to read
+	move	$a0, deskryptor	# pass file descriptor
+	#move	$a1, adr_mem1	# allocated memory
+	addiu	$a1, adr_mem1, 4	# We need to shift allocated memory by 4 bytes
+	lw	$a2, (adr_mem1)	# pass maximum number of characters to read
 	syscall
 	
 #close file
 	li	$v0, 16
-	move	$a0, $t0	# file descriptor to close
+	move	$a0, deskryptor	# file descriptor to close
 	syscall
 	#print aboute close
 	jal	closeFile
@@ -123,34 +128,34 @@ main:
 
 #Calculate size in bytes (with padding)
 	#the bitmap width in bytes
-	lw	$t1, 16($s1)
+	lw	$t1, 16(adr_mem1)
 	addiu	$t1, $t1, 31
 	srl	$t1, $t1, 5
 	sll	$t1, $t1, 2
-	move	$s3, $t1
+	move	width_B, $t1
 	jal	printWidthBytes
 	#the bitmap height in bytes
-	lw	$t1, 20($s1)
+	lw	$t1, 20(adr_mem1)
 	addiu	$t1, $t1, 31
 	srl	$t1, $t1, 5
 	sll	$t1, $t1, 2
-	move	$s4, $t1
+	move	height_B, $t1
 	jal	printHeightBytes
 	
 #create new allocated memory
 	#width * height
-	mul	$s5, $s4, $s3
+	mul	new_pixel_area, height_B, width_B
 	#allocate heap memory
 	li	$v0, 9
-	move	$a0, $s5	#number of bits
+	move	$a0, new_pixel_area	#number of bits
 	syscall
-	move	$s2, $v0	#save the address of allocated memory
+	move	adr_mem2, $v0	#save the address of allocated memory
 	
 	#load and chang offset of image data
-	lw	$t9, 8($s1)
+	lw	$t9, 8(adr_mem1)
 	sub 	$t9, $t9, 2
 	#change pointer of first allocated memory to image data		 	#note !!!!!
-	addiu	$s1, $s1, $t9
+	add	adr_mem1, adr_mem1, $t9
 	
 	
 	
@@ -173,7 +178,7 @@ errorfr:
 
 closef:	
 	li	$v0, 16
-	move	$a0, $t0	# file descriptor to close
+	move	$a0, deskryptor	# file descriptor to close
 	syscall
 	li 	$v0, 4
 	la 	$a0, closeFInfo
@@ -218,7 +223,7 @@ printWidth:
 	la 	$a0, width
 	syscall
 	li	$v0, 1
-	lw	$a0, 16($s1)
+	lw	$a0, 16(adr_mem1)
 	syscall
 	j 	printEnter
 printHeight:
@@ -226,7 +231,7 @@ printHeight:
 	la 	$a0, height
 	syscall
 	li	$v0, 1
-	lw	$a0, 20($s1)
+	lw	$a0, 20(adr_mem1)
 	syscall
 	j 	printEnter
 printWidthBytes:
@@ -234,7 +239,7 @@ printWidthBytes:
 	la 	$a0, widthBytes
 	syscall
 	li	$v0, 1
-	move	$a0, $s3
+	move	$a0, width_B
 	syscall
 	j 	printEnter
 printHeightBytes:
@@ -242,7 +247,7 @@ printHeightBytes:
 	la 	$a0, heightBytes
 	syscall
 	li	$v0, 1
-	move	$a0, $s4
+	move	$a0, height_B
 	syscall
 	j 	printEnter
 	
