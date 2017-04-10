@@ -26,9 +26,11 @@ heightBytes:	.asciiz "height in bytes: \n"
 #t0 - File descriptor
 #t1 - 
 #s0 - The number of turns
-#s1 - Address of allocated memory
-#s2 - The bitmap width in bytes
-#s3 - The bitmap height in bytes
+#s1 - Address of allocated memory 1
+#s2 - Address of allocated memory 2
+#s3 - The bitmap width in bytes
+#s4 - The bitmap height in bytes
+#s5 - The bitmap height * width
 
 
 
@@ -124,19 +126,29 @@ main:
 	addi	$t1, $t1, 31
 	srl	$t1, $t1, 5
 	sll	$t1, $t1, 2
-	move	$s2, $t1
+	move	$s3, $t1
 	jal	printWidthBytes
 	#the bitmap height in bytes
 	lw	$t1, 20($s1)
 	addi	$t1, $t1, 31
 	srl	$t1, $t1, 5
 	sll	$t1, $t1, 2
-	move	$s3, $t1
+	move	$s4, $t1
 	jal	printHeightBytes
+	
+#create new allocated memory
+	#width * height
+	mul	$s5, $s4, $s3
+	#allocate heap memory
+	li	$v0, 9
+	move	$a0, $s5	#number of bits
+	syscall
+	move	$s2, $v0	#save the address of allocated memory
+	
+	
 	
 	
 	j	end
-	
 errorfo:
 	li 	$v0, 4
 	la 	$a0, fOpenErrorInfo
@@ -212,7 +224,7 @@ printWidthBytes:
 	la 	$a0, widthBytes
 	syscall
 	li	$v0, 1
-	move	$a0, $s2
+	move	$a0, $s3
 	syscall
 	j 	printEnter
 printHeightBytes:
@@ -220,7 +232,7 @@ printHeightBytes:
 	la 	$a0, heightBytes
 	syscall
 	li	$v0, 1
-	move	$a0, $s3
+	move	$a0, $s4
 	syscall
 	j 	printEnter
 	
