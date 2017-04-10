@@ -1,3 +1,15 @@
+#t0 - File descriptor
+#t1 - 
+#s0 - The number of turns
+#s1 - Address of allocated memory 1
+#s2 - Address of allocated memory 2
+#s3 - The bitmap width in bytes
+#s4 - The bitmap height in bytes
+#s5 - The bitmap height * width
+	
+
+
+		
 	.data	
 text1: 	.asciiz "Enter the file path \n"
 text2:  .asciiz "Enter the number of turns \n"
@@ -22,17 +34,6 @@ heightBytes:	.asciiz "height in bytes: \n"
 
 	.text
 	.globl main
-
-#t0 - File descriptor
-#t1 - 
-#s0 - The number of turns
-#s1 - Address of allocated memory 1
-#s2 - Address of allocated memory 2
-#s3 - The bitmap width in bytes
-#s4 - The bitmap height in bytes
-#s5 - The bitmap height * width
-
-
 
 main:
 
@@ -123,14 +124,14 @@ main:
 #Calculate size in bytes (with padding)
 	#the bitmap width in bytes
 	lw	$t1, 16($s1)
-	addi	$t1, $t1, 31
+	addiu	$t1, $t1, 31
 	srl	$t1, $t1, 5
 	sll	$t1, $t1, 2
 	move	$s3, $t1
 	jal	printWidthBytes
 	#the bitmap height in bytes
 	lw	$t1, 20($s1)
-	addi	$t1, $t1, 31
+	addiu	$t1, $t1, 31
 	srl	$t1, $t1, 5
 	sll	$t1, $t1, 2
 	move	$s4, $t1
@@ -144,6 +145,15 @@ main:
 	move	$a0, $s5	#number of bits
 	syscall
 	move	$s2, $v0	#save the address of allocated memory
+	
+	#load and chang offset of image data
+	lw	$t9, 8($s1)
+	sub 	$t9, $t9, 2
+	#change pointer of first allocated memory to image data		 	#note !!!!!
+	addiu	$s1, $s1, $t9
+	
+	
+	
 	
 	
 	
