@@ -20,13 +20,12 @@
 
 		
 	.data	
+buf:	.space	300
+fname:	.space 100
+#fname: 	.asciiz "image3.bmp"
+rfname: .asciiz "result.bmp"
 text1: 	.asciiz "Enter the file path \n"
 text2:  .asciiz "Enter the number of turns \n"
-#fname:	.space 100
-fname: 	.asciiz "image1.bmp"
-rfname: .asciiz "result.bmp"
-
-buf:	.space	300
 BM:	.asciiz "BM"
 
 enter:		.asciiz "\n"
@@ -50,12 +49,20 @@ main:
 	li 	$v0, 4
 	la 	$a0, text1
 	syscall			# print string 1
-	#li 	$v0, 8
-	#la 	$a0, fname
-	#li 	$a1, 100
-	#syscall		# read string to path
+	li 	$v0, 8
+	la 	$a0, fname
+	li 	$a1, 100
+	syscall		# read string to path
+	#Erase enter from the string
+	la	$t1, fname
+	sub	$t1, $t1, 1
+loopErase:
+	add	$t1, $t1, 1
+	lb	$t2, ($t1)
+	bne	$t2, 10, loopErase
+	sb	$0, ($t1)
 	#print path
-	jal	pathFile
+	#jal	pathFile
 	
 #read number of turns	
 	li 	$v0, 4
