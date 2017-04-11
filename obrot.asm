@@ -132,7 +132,7 @@ main:
 	move	$a0, deskryptor	# pass file descriptor
 	addiu	$a1, adr_mem, 12# We need to shift allocated memory by 12 bytes
 	lw	$a2, 8(adr_mem)	# pass maximum number of characters to read
-	sub	$a2, $a2, 18	# 2 + 4 + 4 + 4
+	sub	$a2, $a2, 14	# 2 + 4 + 4 + 4
 	syscall
 	
 	
@@ -202,7 +202,7 @@ main:
 
 
 	
-#rotate!!!
+rotate:
 	#(i,j) - position in pixels data 1
 	#(k,m) - position in pixels data 2
 	#(i,j) = i*bytes_per_pixel + j*width_B
