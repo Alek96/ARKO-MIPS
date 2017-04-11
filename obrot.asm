@@ -61,12 +61,12 @@ main:
 	li 	$v0, 4
 	la 	$a0, text2
 	syscall			# print string 2
-	#li 	$v0, 5
-	#syscall 		# read integer
-	li	$v0, 2		# set the number of turns
+	li 	$v0, 5
+	syscall 		# read integer
+	#li	$v0, 2		# set the number of turns
 	move	$s0, $v0
 	#print number of turn
-	jal	turnNumber
+	#jal	turnNumber
 	#check if number of turn is valid
 	blt	$s0, 0, end
 	bge	$s0, 4, end
@@ -80,7 +80,7 @@ main:
 	blt	$v0, 0, errorfo	# opening file did not succeed	
 	move	deskryptor, $v0	# file descriptor
 	#print "File is opened"
-	jal	openFile
+	#jal	openFile
 	
 #read file
 	#bitmap file header
@@ -100,7 +100,7 @@ main:
 	beq	$v0, 0, errorfr	# reading file did not succeed
 	lw	$t9, buf
 	#print bits number - ok
-	jal	bitesNumber
+	#jal	bitesNumber
 	#read 4 reserved bytes = 0
 	li	$v0, 14
 	move	$a0, deskryptor	# pass file descriptor
@@ -141,9 +141,9 @@ main:
 	
 #size from allocated memory
 	#the bitmap width in pixels
-	jal	printWidth
+	#jal	printWidth
 	#the bitmap height in pixels
-	jal	printHeight
+	#jal	printHeight
 
 #Calculate size in bytes (with padding)
 	#the bitmap width in bytes
@@ -154,7 +154,7 @@ main:
 	srl	$t1, $t1, 5
 	sll	$t1, $t1, 2
 	move	width_B, $t1
-	jal	printWidthBytes
+	#jal	printWidthBytes
 	#the bitmap height in bytes
 	lw	$t1, 20(adr_mem)	#image width
 	lh	$t2, 26(adr_mem)	#bits per pixel
@@ -163,7 +163,7 @@ main:
 	srl	$t1, $t1, 5
 	sll	$t1, $t1, 2
 	move	height_B, $t1
-	jal	printHeightBytes
+	#jal	printHeightBytes
 
 #allocate heap memory for pixel data
 	#width * height
@@ -186,10 +186,9 @@ main:
 	move	$a0, deskryptor	# file descriptor to close
 	syscall
 	#print aboute close
-	jal	closeFile
+	#jal	closeFile
 
 #create new allocated memory
-	#allocate heap memory
 	li	$v0, 9
 	move	$a0, size_pixel_area	#number of bits
 	syscall
@@ -199,7 +198,7 @@ main:
 	lh 	bytes_per_pixel, 26(adr_mem)
 	div	bytes_per_pixel, bytes_per_pixel, 8
 	#print bytes per pixel
-	jal	printBytesPerPixel
+	#jal	printBytesPerPixel
 	
 	
 rotate:
@@ -247,7 +246,7 @@ rotateLoop2:
 	sb	$t9, 1($t8)
 	lb	$t9, 2($t7)
 	sb	$t9, 2($t8)
-	
+	#after main loop
 	add	$t1, $t1, 1
 	add	$t4, $t4, 1
 	blt	$t1, $t5, rotateLoop2
@@ -294,7 +293,7 @@ copyLoop:
 	blt	$v0, 0, errorfo	# opening file did not succeed	
 	move	deskryptor, $v0	# file descriptor
 	#print "File is opened"
-	jal	openFile
+	#jal	openFile
 	
 #write to file
 	#write "BM"
@@ -322,7 +321,7 @@ copyLoop:
 	move	$a0, deskryptor	# file descriptor to close
 	syscall
 	#print aboute close
-	jal	closeFile
+	#jal	closeFile
 	
 	
 	j	end
