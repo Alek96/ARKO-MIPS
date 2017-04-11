@@ -63,10 +63,13 @@ main:
 	syscall			# print string 2
 	#li 	$v0, 5
 	#syscall 		# read integer
-	li	$v0, 1		# set the number of turns
+	li	$v0, 2		# set the number of turns
 	move	$s0, $v0
 	#print number of turn
 	jal	turnNumber
+	#check if number of turn is valid
+	blt	$s0, 0, end
+	bge	$s0, 4, end
 	
 #open file
 	li	$v0, 13
@@ -198,9 +201,6 @@ main:
 	#print bytes per pixel
 	jal	printBytesPerPixel
 	
-
-
-
 	
 rotate:
 	#(i,j) - position in pixels data 1
@@ -275,6 +275,15 @@ copyLoop:
 	lw	$t2, 20(adr_mem)
 	sw	$t1, 20(adr_mem)
 	sw	$t2, 16(adr_mem)
+	
+#swap width_B and height_B
+	move	$t1, 	  width_B
+	move	width_B,  height_B
+	move	height_B, $t1
+
+#check if is still more rotate
+	sub	$s0, $s0, 1
+	bgt 	$s0, 0, rotate
 
 #open file
 	li	$v0, 13
