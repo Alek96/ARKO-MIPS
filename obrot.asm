@@ -23,13 +23,11 @@
 text1: 	.asciiz "Enter the file path \n"
 text2:  .asciiz "Enter the number of turns \n"
 #fname:	.space 100
-fname: 	.asciiz "image2.bmp"
+fname: 	.asciiz "image1.bmp"
 rfname: .asciiz "result.bmp"
 
-buf:	.space	2097152
-		#10240		# 10kB
-		#2097152	# 2MB
-BM:	.asciiz  "BM"
+buf:	.space	300
+BM:	.asciiz "BM"
 
 enter:		.asciiz "\n"
 fOpenInfo: 	.asciiz "File is opened \n"
@@ -65,10 +63,13 @@ main:
 	syscall			# print string 2
 	#li 	$v0, 5
 	#syscall 		# read integer
-	li	$v0, 1		# set the number of turns
+	li	$v0, 2		# set the number of turns
 	move	$s0, $v0
 	#print number of turn
 	jal	turnNumber
+	#check if number of turn is valid
+	blt	$s0, 0, end
+	bge	$s0, 4, end
 	
 #open file
 	li	$v0, 13
@@ -100,30 +101,42 @@ main:
 	lw	$t9, buf
 	#print bits number - ok
 	jal	bitesNumber
+	#read 4 reserved bytes = 0
+	li	$v0, 14
+	move	$a0, deskryptor	# pass file descriptor
+	la	$a1, buf	# pass address of input buffer
+	li	$a2, 4		# pass maximum number of characters to read
+	syscall
+	beq	$v0, 0, errorfr	# reading file did not succeed
+	lw	$t8, buf
+	#read the offset of image data (pixel array)
+	li	$v0, 14
+	move	$a0, deskryptor	# pass file descriptor
+	la	$a1, buf	# pass address of input buffer
+ 	li	$a2, 4		# pass maximum number of characters to read
+  	syscall
+	lw 	$t7, buf
 	
-	#allocate heap memory
+	#allocate heap memory for head
 	li	$v0, 9
-	move	$a0, $t9	#number of bits
+	move	$a0, $t7	#number of bits
 	syscall
 	move	adr_mem, $v0	#save the address of allocated memory
 	
 	#save the size of the BMP file
 	sw	$t9, (adr_mem)
+	#save 4 reserved bytes = 0
+	sw	$t8, 4(adr_mem)
+	#save the offset of image data
+	sw	$t7, 8(adr_mem)
 	
-	#read rest of file to allocated memory (14)
+	#read to allocated memory (14)
 	li	$v0, 14
 	move	$a0, deskryptor	# pass file descriptor
-	#move	$a1, adr_mem	# allocated memory
-	addiu	$a1, adr_mem, 4	# We need to shift allocated memory by 4 bytes
-	lw	$a2, (adr_mem)	# pass maximum number of characters to read
+	addiu	$a1, adr_mem, 12# We need to shift allocated memory by 12 bytes
+	lw	$a2, 8(adr_mem)	# pass maximum number of characters to read
+	sub	$a2, $a2, 14	# 2 + 4 + 4 + 4
 	syscall
-	
-#close file
-	li	$v0, 16
-	move	$a0, deskryptor	# file descriptor to close
-	syscall
-	#print aboute close
-	jal	closeFile
 	
 	
 #size from allocated memory
@@ -151,30 +164,45 @@ main:
 	sll	$t1, $t1, 2
 	move	height_B, $t1
 	jal	printHeightBytes
-	
-#set the number of bytes per pixel
-	lh 	bytes_per_pixel, 26(adr_mem)
-	div	bytes_per_pixel, bytes_per_pixel, 8
-	#print bytes per pixel
-	jal	printBytesPerPixel
-	
-	#load and chang offset of image data
-	lw	$t9, 8(adr_mem)
-	sub 	$t9, $t9, 2
-	#change pointer of first allocated memory to image data		 	#note !!!!!
-	add	adr_pb1, adr_mem, $t9
-	
-#create new allocated memory
+
+#allocate heap memory for pixel data
 	#width * height
 	mul	size_pixel_area, height_B, width_B
 	#allocate heap memory
 	li	$v0, 9
 	move	$a0, size_pixel_area	#number of bits
 	syscall
+	move	adr_pb1, $v0	#save the address of allocated memory
+	
+	#read to allocated memory (14)
+	li	$v0, 14
+	move	$a0, deskryptor	# pass file descriptor
+	move	$a1, adr_pb1	# We need to shift allocated memory by 4 bytes
+	move	$a2, size_pixel_area	# pass maximum number of characters to read
+	syscall
+
+#close file
+	li	$v0, 16
+	move	$a0, deskryptor	# file descriptor to close
+	syscall
+	#print aboute close
+	jal	closeFile
+
+#create new allocated memory
+	#allocate heap memory
+	li	$v0, 9
+	move	$a0, size_pixel_area	#number of bits
+	syscall
 	move	adr_pb2, $v0	#save the address of allocated memory
+
+#set the number of bytes per pixel
+	lh 	bytes_per_pixel, 26(adr_mem)
+	div	bytes_per_pixel, bytes_per_pixel, 8
+	#print bytes per pixel
+	jal	printBytesPerPixel
 	
 	
-#rotate!!!
+rotate:
 	#(i,j) - position in pixels data 1
 	#(k,m) - position in pixels data 2
 	#(i,j) = i*bytes_per_pixel + j*width_B
@@ -231,22 +259,31 @@ rotateLoop2:
 	
 
 #copy pixels data 2 to pixels data 1
-	#move 	$t1, size_pixel_area
-	#move	$t2, adr_pb1
-	#move	$t3, adr_pb2
+	move 	$t1, size_pixel_area
+	move	$t2, adr_pb1
+	move	$t3, adr_pb2
 copyLoop:
-	#subiu	$t1, $t1, 1
-	#lb 	$t4, ($t3)
-	#sb	$t4, ($t2)
-	#addiu	$t2, $t2, 1
-	#addiu	$t3, $t3, 1
-	#bnez	$t1, copyLoop
+	subiu	$t1, $t1, 1
+	lb 	$t4, ($t3)
+	sb	$t4, ($t2)
+	addiu	$t2, $t2, 1
+	addiu	$t3, $t3, 1
+	bnez	$t1, copyLoop
 
 #swap width and height
 	lw	$t1, 16(adr_mem)
 	lw	$t2, 20(adr_mem)
 	sw	$t1, 20(adr_mem)
 	sw	$t2, 16(adr_mem)
+	
+#swap width_B and height_B
+	move	$t1, 	  width_B
+	move	width_B,  height_B
+	move	height_B, $t1
+
+#check if is still more rotate
+	sub	$s0, $s0, 1
+	bgt 	$s0, 0, rotate
 
 #open file
 	li	$v0, 13
@@ -266,18 +303,18 @@ copyLoop:
 	la	$a1, BM		# pass address of input buffer
 	li	$a2, 2		# pass maximum number of characters to read
 	syscall
-	#write rest of file
+	#write head of file
 	li	$v0, 15
 	move	$a0, deskryptor	# pass file descriptor
 	move	$a1, adr_mem	# pass address of input buffer
-	lw	$a2, 8(adr_mem)	# pass maximum number of characters to read
+	lw	$a2, 8(adr_mem)	# pass maximum number of characters to write
 	sub	$a2, $a2, 2	# -2B <-> BM
 	syscall
 	#write rest of file
 	li	$v0, 15
 	move	$a0, deskryptor	# pass file descriptor
-	move	$a1, adr_pb2	# pass address of input buffer
-	move	$a2, size_pixel_area	# pass maximum number of characters to read
+	move	$a1, adr_pb1	# pass address of input buffer
+	move	$a2, size_pixel_area	# pass maximum number of characters to write
 	syscall
 
 #close file
