@@ -173,8 +173,18 @@ loopErase:
 	#jal	printHeightBytes
 
 #allocate heap memory for pixel data
-	#width * height
-	mul	size_pixel_area, height_B, width_B
+	#count size pixeal area = max(width * height_B, height * width_B)
+	lw	$t3, 16(adr_mem)
+	lw	$t4, 20(adr_mem)
+	mul	$t1, $t3, height_B
+	mul	$t2, $t4, width_B
+	bge 	$t1, $t2, t1IsGreater	#b $t1 > $t2
+	move	size_pixel_area, $t2 	#t2 is greater
+	j	allocate
+t1IsGreater:
+	move	size_pixel_area, $t1
+	
+allocate:
 	#allocate heap memory
 	li	$v0, 9
 	move	$a0, size_pixel_area	#number of bits
@@ -317,10 +327,14 @@ copyLoop:
 	sub	$a2, $a2, 2	# -2B <-> BM
 	syscall
 	#write rest of file
+	#count how many bytes to save
+	lw	$t1, 20(adr_mem)
+	mul	$t1, $t1, width_B
+	#write
 	li	$v0, 15
 	move	$a0, deskryptor	# pass file descriptor
 	move	$a1, adr_pb1	# pass address of input buffer
-	move	$a2, size_pixel_area	# pass maximum number of characters to write
+	move	$a2, $t1	# pass maximum number of characters to write
 	syscall
 
 #close file
