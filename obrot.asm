@@ -214,14 +214,12 @@ allocate:
 	#print bytes per pixel
 	#jal	printBytesPerPixel
 	
-
-#number of turn modulo 4
+#number of turns modulo 4
 	add	$s0, $s0, 4
 mod4:
 	sub	$s0, $s0, 4
 	ble	$s0, 0, save
 	bge	$s0, 4, mod4
-
 
 rotate:
 	#(i,j) - position in pixels data 1
