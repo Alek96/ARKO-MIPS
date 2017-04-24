@@ -74,9 +74,6 @@ loopErase:
 	move	$s0, $v0
 	#print number of turn
 	#jal	turnNumber
-	#check if number of turn is valid
-	blt	$s0, 0, end
-	bge	$s0, 4, end
 	
 #open file
 	li	$v0, 13
@@ -217,7 +214,15 @@ allocate:
 	#print bytes per pixel
 	#jal	printBytesPerPixel
 	
-	
+
+#number of turn modulo 4
+	add	$s0, $s0, 4
+mod4:
+	sub	$s0, $s0, 4
+	ble	$s0, 0, save
+	bge	$s0, 4, mod4
+
+
 rotate:
 	#(i,j) - position in pixels data 1
 	#(k,m) - position in pixels data 2
@@ -301,6 +306,7 @@ copyLoop:
 	sub	$s0, $s0, 1
 	bgt 	$s0, 0, rotate
 
+save:
 #open file
 	li	$v0, 13
 	la	$a0, rfname	# file path
