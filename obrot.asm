@@ -105,41 +105,24 @@ loopErase:
 	lw	$t9, buf
 	#print bits number - ok
 	#jal	bitesNumber
-	#read 4 reserved bytes = 0
-	li	$v0, 14
-	move	$a0, deskryptor	# pass file descriptor
-	la	$a1, buf	# pass address of input buffer
-	li	$a2, 4		# pass maximum number of characters to read
-	syscall
-	beq	$v0, 0, errorfr	# reading file did not succeed
-	lw	$t8, buf
-	#read the offset of image data (pixel array)
-	li	$v0, 14
-	move	$a0, deskryptor	# pass file descriptor
-	la	$a1, buf	# pass address of input buffer
- 	li	$a2, 4		# pass maximum number of characters to read
-  	syscall
-	lw 	$t7, buf
+	
 	
 	#allocate heap memory for head
 	li	$v0, 9
-	move	$a0, $t7	#number of bits
+	move	$a0, $t9	#number of bits
+	add	$a0, $a0, 100
 	syscall
 	move	adr_mem, $v0	#save the address of allocated memory
 	
 	#save the size of the BMP file
-	sw	$t9, (adr_mem)
-	#save 4 reserved bytes = 0
-	sw	$t8, 4(adr_mem)
-	#save the offset of image data
-	sw	$t7, 8(adr_mem)
+	sw	$t9, 0(adr_mem)
 	
 	#read to allocated memory (14)
 	li	$v0, 14
 	move	$a0, deskryptor	# pass file descriptor
-	addiu	$a1, adr_mem, 12# We need to shift allocated memory by 12 bytes
-	lw	$a2, 8(adr_mem)	# pass maximum number of characters to read
-	sub	$a2, $a2, 14	# 2 + 4 + 4 + 4
+	addiu	$a1, adr_mem, 4	# We need to shift allocated memory by 4 bytes
+	lw	$a2, 0(adr_mem)	# pass maximum number of characters to read
+	sub	$a2, $a2, 6	# 2 + 4
 	syscall
 	
 	
@@ -182,18 +165,11 @@ t1IsGreater:
 	move	size_pixel_area, $t1
 	
 allocate:
-	#allocate heap memory
-	li	$v0, 9
-	move	$a0, size_pixel_area	#number of bits
-	syscall
-	move	adr_pb1, $v0	#save the address of allocated memory
+	#allocated memory for pixel area
+	lw	$t1, 8(adr_mem)		#The offset of the image data
+	add	adr_pb1, adr_mem, $t1
+	sub	adr_pb1, adr_pb1, 2
 	
-	#read to allocated memory (14)
-	li	$v0, 14
-	move	$a0, deskryptor	# pass file descriptor
-	move	$a1, adr_pb1	# We need to shift allocated memory by 4 bytes
-	move	$a2, size_pixel_area	# pass maximum number of characters to read
-	syscall
 
 #close file
 	li	$v0, 16
@@ -323,22 +299,20 @@ save:
 	la	$a1, BM		# pass address of input buffer
 	li	$a2, 2		# pass maximum number of characters to read
 	syscall
-	#write head of file
-	li	$v0, 15
-	move	$a0, deskryptor	# pass file descriptor
-	move	$a1, adr_mem	# pass address of input buffer
-	lw	$a2, 8(adr_mem)	# pass maximum number of characters to write
-	sub	$a2, $a2, 2	# -2B <-> BM
-	syscall
-	#write rest of file
+	
 	#count how many bytes to save
 	lw	$t1, 20(adr_mem)
 	mul	$t1, $t1, width_B
-	#write
+	lw	$t2, 8(adr_mem)
+	add	$t3, $t1, $t2
+	sw	$t3, 0(adr_mem)
+	
+	#write rest of file
 	li	$v0, 15
 	move	$a0, deskryptor	# pass file descriptor
-	move	$a1, adr_pb1	# pass address of input buffer
-	move	$a2, $t1	# pass maximum number of characters to write
+	move	$a1, adr_mem	# pass address of input buffer
+	lw	$a2, 0(adr_mem)	# pass maximum number of characters to write
+	sub	$a2, $a2, 2	# -2B <-> BM
 	syscall
 
 #close file
