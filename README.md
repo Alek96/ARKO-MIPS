@@ -1,10 +1,8 @@
-# ARKO-MIPS
-Obrót o 90 stopni obrazka bmp
+# RotateBMP
+Asm project for ARKO (Computer architecture) classes at WUT
 
+Program performs n*90 degree rotation of given BMP(24b per pixel) file.
+The *n* coefficient, input file and output file locations are passed by the user.
+The output of the program is the rotated picture stored at given location .
 
-Offset of first allocated memory - $s1 - all store 4B
-0  - The size of the BMP file in bytes
-8  - The offset of the image data
-16 - The bitmap width in pixels
-20 - The bitmap height in pixels
-26 - The number of bits per pixel (2B)
+*Written in Assembly for MIPS and x86[shortly] platforms.*
